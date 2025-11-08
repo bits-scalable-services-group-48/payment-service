@@ -1,0 +1,26 @@
+server:
+  port: 8084   # 8081=catalog, 8082=seating, 8083=orders, 8084=payments
+
+spring:
+  application:
+    name: payment-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payment_db
+    username: payment_user
+    password: payment_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none   # we'll create the table manually to avoid permission issues
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
