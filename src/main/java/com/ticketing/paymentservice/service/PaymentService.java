@@ -25,7 +25,6 @@ public class PaymentService {
             throw new IllegalArgumentException("Idempotency-Key header is required");
         }
 
-        // 1) Idempotency: if we already processed this key, return same result
         Optional<Payment> existingOpt = paymentRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOpt.isPresent()) {
             Payment existing = existingOpt.get();
@@ -38,7 +37,6 @@ public class PaymentService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // 2) Create payment in PENDING state
         Payment payment = Payment.builder()
                 .orderId(request.getOrderId())
                 .amount(request.getAmount())
@@ -46,13 +44,12 @@ public class PaymentService {
                 .method(request.getMethod())
                 .status(PaymentStatus.PENDING)
                 .idempotencyKey(idempotencyKey)
-                .externalRef("PAY-" + UUID.randomUUID()) // mock gateway ref
+                .externalRef("PAY-" + UUID.randomUUID())
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
 
-        // --- Simulate success --- //
-        // For now, simply mark as SUCCESS immediately.
+        // Simulate success
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setUpdatedAt(LocalDateTime.now());
 
@@ -68,5 +65,31 @@ public class PaymentService {
     public Payment getPayment(Long id) {
         return paymentRepository.findById(id)
                 .orElseThrow(() -> new IllegalStateException("Payment not found: " + id));
+    }
+
+    /**
+     * Mark payment as REFUNDED.
+     * To be called when event/order is cancelled.
+     */
+    public Payment refundPayment(Long id, String reason) {
+        Payment payment = paymentRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("Payment not found: " + id));
+
+        // Basic business rule: only SUCCESS payments can be refunded
+        if (payment.getStatus() == PaymentStatus.REFUNDED) {
+            // already refunded - idempotent
+            return payment;
+        }
+        if (payment.getStatus() != PaymentStatus.SUCCESS) {
+            throw new IllegalStateException(
+                    "Only SUCCESS payments can be refunded. Current status = " + payment.getStatus()
+            );
+        }
+
+        payment.setStatus(PaymentStatus.REFUNDED);
+        payment.setUpdatedAt(LocalDateTime.now());
+        // you could also log/store the reason in a separate column if you want
+
+        return paymentRepository.save(payment);
     }
 }
