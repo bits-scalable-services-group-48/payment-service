@@ -6,9 +6,9 @@ spring:
     name: payment-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5434/payment_db
-    username: payment_user
-    password: payment_password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/payment_db}
+    username: ${SPRING_DATASOURCE_USERNAME:payment_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:payment_password}
     driver-class-name: org.postgresql.Driver
     hikari:
       connection-init-sql: SET TIME ZONE 'UTC'
